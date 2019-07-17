@@ -4,10 +4,9 @@ from __future__ import absolute_import
 
 import threading
 
-import colorama
 from rotest.core.result.handlers.abstract_handler import AbstractResultHandler
 
-from .utils import wrap_settrace, get_statistics, go_over_tests, set_color, create_bar
+from .utils import wrap_settrace, get_statistics, go_over_tests, create_bar
 
 
 class ProgressHandler(AbstractResultHandler):
@@ -107,8 +106,6 @@ class ProgressHandler(AbstractResultHandler):
         Args:
             test (rotest.core.abstract_test.AbstractTest): test item instance.
         """
-        if test.progress_bar:
-            set_color(test, colorama.Fore.GREEN)
 
     def add_info(self, test, msg):
         """Called when a test registers a success message.
@@ -124,8 +121,6 @@ class ProgressHandler(AbstractResultHandler):
             test (rotest.core.abstract_test.AbstractTest): test item instance.
             reason (str): reason for skipping the test.
         """
-        if test.progress_bar:
-            set_color(test, colorama.Fore.YELLOW)
 
     def add_failure(self, test, exception_string):
         """Called when an error has occurred.
@@ -134,8 +129,6 @@ class ProgressHandler(AbstractResultHandler):
             test (rotest.core.abstract_test.AbstractTest): test item instance.
             exception_string (str): exception description.
         """
-        if test.progress_bar:
-            set_color(test, colorama.Fore.LIGHTRED_EX)
 
     def add_error(self, test, exception_string):
         """Called when an error has occurred.
@@ -144,8 +137,6 @@ class ProgressHandler(AbstractResultHandler):
             test (rotest.core.abstract_test.AbstractTest): test item instance.
             exception_string (str): exception description.
         """
-        if test.progress_bar:
-            set_color(test, colorama.Fore.RED)
 
     def add_expected_failure(self, test, exception_string):
         """Called when an expected failure/error occurred.

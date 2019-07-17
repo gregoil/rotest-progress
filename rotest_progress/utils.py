@@ -5,6 +5,16 @@ import threading
 
 import tqdm
 import colorama
+from rotest.core.models.case_data import TestOutcome
+
+
+default_color = colorama.Fore.WHITE
+outcome_to_color = {TestOutcome.SUCCESS: colorama.Fore.GREEN,
+                    TestOutcome.ERROR: colorama.Fore.RED,
+                    TestOutcome.EXPECTED_FAILURE: colorama.Fore.CYAN,
+                    TestOutcome.FAILED: colorama.Fore.LIGHTRED_EX,
+                    TestOutcome.SKIPPED: colorama.Fore.YELLOW,
+                    TestOutcome.UNEXPECTED_SUCCESS: colorama.Fore.CYAN}
 
 
 bar_format = "{l_bar}%%s{bar}%s| {n_fmt}/{total_fmt} %%s{postfix}" % colorama.Fore.RESET
@@ -65,27 +75,41 @@ def get_format(test, color):
         return bar_format % (color, 'seconds')
 
 
-def set_color(test, color):
+def set_color(test):
+    color = default_color
+    if hasattr(test.data, 'exception_type'):
+        color = outcome_to_color.get(test.data.exception_type, color)
+
+    else:
+        if test.data.success is True:
+            color = outcome_to_color.get(TestOutcome.SUCCESS)
+
+        elif test.data.success is False:
+            color = outcome_to_color.get(TestOutcome.FAILED)
+
     test.progress_bar.bar_format = get_format(test, color)
-    test.progress_bar.update(0)
 
 
 def go_over_tests(test):
     if test.IS_COMPLEX:
-        for _, sub_test in zip(create_bar(test), test):
+        for index, sub_test in zip(create_bar(test), test):
             go_over_tests(sub_test)
+            if index == len(list(test)) - 1:
+                set_color(test)
 
     else:
-        for _ in create_bar(test):
-            if test.progress_bar.finish:
-                continue
-            time.sleep(1)
-            if test.progress_bar.n == test.progress_bar.total - 1:
-                while not test.progress_bar.finish:
+        for index in create_bar(test):
+            if not test.progress_bar.finish:
+                time.sleep(1)
+                if test.progress_bar.n == test.progress_bar.total - 1:
+                    while not test.progress_bar.finish:
+                        time.sleep(0.2)
+
+                while tracer_event.is_set():
                     time.sleep(0.2)
 
-            while tracer_event.is_set():
-                time.sleep(0.2)
+            if index == test.progress_bar.total - 1:
+                set_color(test)
 
 
 def wrap_settrace():
