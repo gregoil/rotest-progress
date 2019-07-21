@@ -17,7 +17,7 @@ outcome_to_color = {TestOutcome.SUCCESS: colorama.Fore.GREEN,
                     TestOutcome.UNEXPECTED_SUCCESS: colorama.Fore.CYAN}
 
 
-bar_format = "{l_bar}%%s{bar}%s| {n_fmt}/{total_fmt} %%s{postfix}" % colorama.Fore.RESET
+bar_format = "{l_bar}%%s{bar}%s| {n:.0f}/{total:.0f} %%s{postfix}" % colorama.Fore.RESET
 unknown_format = "{l_bar}%%s{bar}%s| ? %%s{postfix}" % colorama.Fore.RESET
 
 
@@ -56,12 +56,14 @@ def create_tree_bar(test):
     desc = test.parents_count * '| ' + test.data.name
     if test.IS_COMPLEX:
         total = len(test._tests)
+        unit_scale = False
 
     else:
         avg_time = get_statistics(test)
         if avg_time:
             test.logger.debug("Test avg runtime: %s", avg_time)
-            total = int(avg_time)
+            total = int(avg_time) * 10
+            unit_scale = 0.1
 
         else:
             test.logger.debug("Couldn't get test statistics")
@@ -69,7 +71,8 @@ def create_tree_bar(test):
             total = 1
             desc += " (No statistics)"
 
-    test.progress_bar = tqdm.trange(total, desc=desc, leave=True, position=test.identifier,
+    test.progress_bar = tqdm.trange(total, desc=desc, unit_scale=unit_scale,
+                                    position=test.identifier, leave=True,
                                     bar_format=get_format(test, colorama.Fore.WHITE))
     test.progress_bar.finish = False
     return test.progress_bar
@@ -99,7 +102,8 @@ def create_current_bar(test):
         total = 1
         desc += " (No statistics)"
 
-    test.progress_bar = tqdm.trange(total, desc=desc, leave=False, position=0,
+    test.progress_bar = tqdm.trange(total*10, desc=desc, leave=False,
+                                    position=0, unit_scale=0.1,
                                     bar_format=get_format(test, colorama.Fore.WHITE))
     test.progress_bar.finish = False
     return test.progress_bar
@@ -141,7 +145,7 @@ def go_over_tests(test):
     else:
         for index in test.progress_bar:
             if not test.progress_bar.finish:
-                time.sleep(1)
+                time.sleep(0.1)
                 if index == test.progress_bar.total - 1:
                     while not test.progress_bar.finish:
                         time.sleep(0.2)
