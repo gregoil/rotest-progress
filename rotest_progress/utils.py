@@ -21,6 +21,20 @@ bar_format = "{l_bar}%%s{bar}%s| {n_fmt}/{total_fmt} %%s{postfix}" % colorama.Fo
 unknown_format = "{l_bar}%%s{bar}%s| ? %%s{postfix}" % colorama.Fore.RESET
 
 
+class DummyFile(object):
+    file = None
+
+    def __init__(self, file):
+        self.file = file
+
+    def write(self, x):
+        if len(x.rstrip()) > 0:
+            return tqdm.tqdm.write(x, file=self.file, end="")
+
+    def flush(self):
+        self.file.flush()
+
+
 def get_statistics(test):
     if not test.resource_manager:
         print("No manager")
@@ -38,10 +52,7 @@ tracer_event = threading.Event()
 wrapped_settrace = False
 
 
-def create_bar(test):
-    if hasattr(test, 'progress_bar'):
-        return test.progress_bar
-
+def create_tree_bar(test):
     desc = test.parents_count * '| ' + test.data.name
     if test.IS_COMPLEX:
         total = len(test._tests)
@@ -59,6 +70,36 @@ def create_bar(test):
             desc += " (No statistics)"
 
     test.progress_bar = tqdm.trange(total, desc=desc, leave=True, position=test.identifier,
+                                    bar_format=get_format(test, colorama.Fore.WHITE))
+    test.progress_bar.finish = False
+    return test.progress_bar
+
+
+def create_current_bar(test):
+    index = 0
+    total_tests = 0
+    for sibling in test.parent:
+        total_tests += 1
+
+        if sibling is test:
+            index = total_tests
+
+    desc = "({} / {} in parent) {}".format(index,
+                                           total_tests,
+                                           test.data.name)
+
+    avg_time = get_statistics(test)
+    if avg_time:
+        test.logger.debug("Test avg runtime: %s", avg_time)
+        total = int(avg_time)
+
+    else:
+        test.logger.debug("Couldn't get test statistics")
+        test._no_statistics = True
+        total = 1
+        desc += " (No statistics)"
+
+    test.progress_bar = tqdm.trange(total, desc=desc, leave=False, position=0,
                                     bar_format=get_format(test, colorama.Fore.WHITE))
     test.progress_bar.finish = False
     return test.progress_bar
@@ -92,16 +133,16 @@ def set_color(test):
 
 def go_over_tests(test):
     if test.IS_COMPLEX:
-        for index, sub_test in zip(create_bar(test), test):
+        for index, sub_test in zip(test.progress_bar, test):
             go_over_tests(sub_test)
             if index == len(list(test)) - 1:
                 set_color(test)
 
     else:
-        for index in create_bar(test):
+        for index in test.progress_bar:
             if not test.progress_bar.finish:
                 time.sleep(1)
-                if test.progress_bar.n == test.progress_bar.total - 1:
+                if index == test.progress_bar.total - 1:
                     while not test.progress_bar.finish:
                         time.sleep(0.2)
 

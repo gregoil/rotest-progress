@@ -24,7 +24,9 @@ setup(
     entry_points={
         "rotest.result_handlers": [
             "progress = "
-            "rotest_progress:ProgressHandler",
+            "rotest_progress:CurrentProgressHandler",
+            "full_progress = "
+            "rotest_progress:FullProgressHandler",
         ],
     },
     packages=['rotest_progress'],
