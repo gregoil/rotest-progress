@@ -39,6 +39,10 @@ class FullProgressHandler(AbstractResultHandler):
         self.watcher_thread.setDaemon(True)
         self.watcher_thread.start()
 
+    def start_test(self, test):
+        """Called when the given test is about to be run."""
+        test.progress_bar.start = True
+
     def stop_test(self, test):
         """Called when the given test has been run.
 

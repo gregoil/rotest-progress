@@ -87,6 +87,7 @@ def create_tree_bar(test):
                                     bar_format=get_format(test,
                                                           colorama.Fore.WHITE))
     test.progress_bar.finish = False
+    test.progress_bar.start = False
     return test.progress_bar
 
 
@@ -119,6 +120,7 @@ def create_current_bar(test):
                                     position=1, unit_scale=0.1,
                                     bar_format=CURRENT_FORMAT)
     test.progress_bar.finish = False
+    test.progress_bar.start = False
     return test.progress_bar
 
 
@@ -170,7 +172,7 @@ def go_over_tests(test, use_color):
                     while not test.progress_bar.finish:
                         time.sleep(0.2)
 
-                while TRACER_EVENT.is_set():
+                while not test.progress_bar.start or TRACER_EVENT.is_set():
                     time.sleep(0.2)
 
             if use_color and index == test.progress_bar.total - 1:

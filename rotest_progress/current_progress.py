@@ -39,6 +39,7 @@ class CurrentProgressHandler(AbstractResultHandler):
     def start_test(self, test):
         """Called when the given test is about to be run."""
         test.progress_bar = create_current_bar(test)
+        test.progress_bar.start = True
         self.watcher_thread = threading.Thread(target=go_over_tests,
                                                kwargs={"test": test,
                                                        "use_color": False})
