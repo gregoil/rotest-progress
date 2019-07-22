@@ -1,6 +1,6 @@
 """Defining the progress result handler."""
 # pylint: disable=too-many-arguments
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
 
 import threading
 
