@@ -31,9 +31,7 @@ class DummyFile(object):
 
     def write(self, string):
         """Write using tqdm instead of the file."""
-        string = string.rstrip('\r\n')
-        if string:
-            tqdm.tqdm.write(string, file=self.stream, end="")
+        tqdm.tqdm.write(string, file=self.stream, end="")
 
     def flush(self):
         """Flush the stream."""
@@ -47,7 +45,7 @@ def get_statistics(test):
         test (AbstractTest): test instance to find its duration.
 
     Returns:
-        number. average duration of the test or None if couldn't get it.
+        number: average duration of the test or None if couldn't get it.
     """
     if not test.resource_manager:
         return None
@@ -118,7 +116,7 @@ def create_current_bar(test):
         desc += " (No statistics)"
 
     test.progress_bar = tqdm.trange(total*10, desc=desc, leave=False,
-                                    position=0, unit_scale=0.1,
+                                    position=1, unit_scale=0.1,
                                     bar_format=CURRENT_FORMAT)
     test.progress_bar.finish = False
     return test.progress_bar
@@ -155,7 +153,7 @@ def go_over_tests(test, use_color):
     """Iterate over test and sub-tests.
 
     Args:
-        test (object): Test or suite to iterate over.
+        test (AbstractTest): Test or suite to iterate over.
         use_color (bool): whether to use colors in the progress bar.
     """
     if test.IS_COMPLEX:
@@ -192,6 +190,7 @@ def wrap_settrace():
                 TRACER_EVENT.clear()
             else:
                 TRACER_EVENT.set()
+
             old_settrace(function)
 
         sys.settrace = event_on_trace

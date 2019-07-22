@@ -10,7 +10,7 @@ from .utils import wrap_settrace, go_over_tests, create_tree_bar
 
 
 class FullProgressHandler(AbstractResultHandler):
-    """ProgressHandler interface."""
+    """FullProgressHandler interface."""
     NAME = 'full_progress'
     watcher_thread = None
 
@@ -19,11 +19,10 @@ class FullProgressHandler(AbstractResultHandler):
         self.max_identifier = 1
 
     def _create_bars(self, test):
-        """."""
+        """Return progress bar."""
         test.progress_bar = create_tree_bar(test)
         max_index = test.identifier
         if test.IS_COMPLEX:
-
             for sub_test in test:
                 max_index = max(max_index, self._create_bars(sub_test))
 
@@ -33,8 +32,10 @@ class FullProgressHandler(AbstractResultHandler):
         """Called once before any tests are executed."""
         wrap_settrace()
         self.max_identifier = self._create_bars(self.main_test)
+
         self.watcher_thread = threading.Thread(target=go_over_tests,
-                                               args=(self.main_test, True))
+                                               kwargs={"test": self.main_test,
+                                                       "use_color": True})
         self.watcher_thread.setDaemon(True)
         self.watcher_thread.start()
 

@@ -11,7 +11,11 @@ from .utils import wrap_settrace, go_over_tests, create_current_bar, DummyFile
 
 
 class CurrentProgressHandler(AbstractResultHandler):
-    """ProgressHandler interface."""
+    """CurrentProgressHandler interface.
+
+    Attributes:
+        stream (file): stdout file to write to.
+    """
     NAME = 'progress'
     watcher_thread = None
 
@@ -24,6 +28,23 @@ class CurrentProgressHandler(AbstractResultHandler):
         """Called once before any tests are executed."""
         wrap_settrace()
 
+    def stop_test_run(self):
+        """Called once after all tests are executed."""
+        if self.watcher_thread:
+            self.watcher_thread.join()
+
+        print("\n")
+
+    @skip_if_flow
+    def start_test(self, test):
+        """Called when the given test is about to be run."""
+        test.progress_bar = create_current_bar(test)
+        self.watcher_thread = threading.Thread(target=go_over_tests,
+                                               kwargs={"test": test,
+                                                       "use_color": False})
+        self.watcher_thread.setDaemon(True)
+        self.watcher_thread.start()
+
     def stop_test(self, test):
         """Called when the given test has been run.
 
@@ -35,19 +56,3 @@ class CurrentProgressHandler(AbstractResultHandler):
             if self.watcher_thread:
                 self.watcher_thread.join()
                 self.watcher_thread = None
-
-    @skip_if_flow
-    def start_test(self, test):
-        """."""
-        test.progress_bar = create_current_bar(test)
-        self.watcher_thread = threading.Thread(target=go_over_tests,
-                                               args=(test, False))
-        self.watcher_thread.setDaemon(True)
-        self.watcher_thread.start()
-
-    def stop_test_run(self):
-        """Called once after all tests are executed."""
-        if self.watcher_thread:
-            self.watcher_thread.join()
-
-        print("\n")
