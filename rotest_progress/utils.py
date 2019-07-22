@@ -17,6 +17,7 @@ outcome_to_color = {TestOutcome.SUCCESS: colorama.Fore.GREEN,
                     TestOutcome.UNEXPECTED_SUCCESS: colorama.Fore.CYAN}
 
 
+current_format = "{l_bar}{bar}| {n:.0f}/{total:.0f} seconds{postfix}"
 bar_format = "{l_bar}%%s{bar}%s| {n:.0f}/{total:.0f} %%s{postfix}" % colorama.Fore.RESET
 unknown_format = "{l_bar}%%s{bar}%s| ? %%s{postfix}" % colorama.Fore.RESET
 
@@ -28,7 +29,8 @@ class DummyFile(object):
         self.file = file
 
     def write(self, x):
-        if len(x.rstrip()) > 0:
+        x = x.rstrip('\r\n')
+        if len(x) > 0:
             return tqdm.tqdm.write(x, file=self.file, end="")
 
     def flush(self):
@@ -104,7 +106,7 @@ def create_current_bar(test):
 
     test.progress_bar = tqdm.trange(total*10, desc=desc, leave=False,
                                     position=0, unit_scale=0.1,
-                                    bar_format=get_format(test, colorama.Fore.WHITE))
+                                    bar_format=current_format)
     test.progress_bar.finish = False
     return test.progress_bar
 
@@ -135,11 +137,11 @@ def set_color(test):
     test.progress_bar.bar_format = get_format(test, color)
 
 
-def go_over_tests(test):
+def go_over_tests(test, use_color):
     if test.IS_COMPLEX:
         for index, sub_test in zip(test.progress_bar, test):
-            go_over_tests(sub_test)
-            if index == len(list(test)) - 1:
+            go_over_tests(sub_test, use_color)
+            if use_color and index == len(list(test)) - 1:
                 set_color(test)
 
     else:
@@ -153,7 +155,7 @@ def go_over_tests(test):
                 while tracer_event.is_set():
                     time.sleep(0.2)
 
-            if index == test.progress_bar.total - 1:
+            if use_color and index == test.progress_bar.total - 1:
                 set_color(test)
 
 

@@ -40,7 +40,8 @@ class CurrentProgressHandler(AbstractResultHandler):
     def start_test(self, test):
         """."""
         test.progress_bar = create_current_bar(test)
-        self.watcher_thread = threading.Thread(target=go_over_tests, args=(test,))
+        self.watcher_thread = threading.Thread(target=go_over_tests,
+                                               args=(test, False))
         self.watcher_thread.setDaemon(True)
         self.watcher_thread.start()
 

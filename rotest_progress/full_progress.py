@@ -33,7 +33,8 @@ class FullProgressHandler(AbstractResultHandler):
         """Called once before any tests are executed."""
         wrap_settrace()
         self.max_identifier = self._create_bars(self.main_test)
-        self.watcher_thread = threading.Thread(target=go_over_tests, args=(self.main_test,))
+        self.watcher_thread = threading.Thread(target=go_over_tests,
+                                               args=(self.main_test, True))
         self.watcher_thread.setDaemon(True)
         self.watcher_thread.start()
 
