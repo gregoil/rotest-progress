@@ -2,6 +2,7 @@
 # pylint: disable=too-many-arguments
 from __future__ import absolute_import, print_function
 
+import os
 import threading
 
 from rotest.core.result.handlers.abstract_handler import AbstractResultHandler
@@ -65,4 +66,4 @@ class FullProgressHandler(AbstractResultHandler):
         if self.watcher_thread:
             self.watcher_thread.join()
 
-        print("\n" * self.max_identifier)
+        print(os.linesep * self.max_identifier)

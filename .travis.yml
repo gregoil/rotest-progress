@@ -2,9 +2,9 @@ language: python
 sudo: required
 dist: xenial
 stages:
-  - test
-  - name: deploy
-    if: tag IS present
+- test
+- name: deploy
+  if: tag IS present
 python:
 - '2.7'
 - '3.6'
@@ -26,4 +26,4 @@ jobs:
       distributions: sdist bdist_wheel
       user: gregoil
       password:
-        secure: LwMeVGDt2AKlz/4W9c6Qde57QHV0zn1TA3WqR5s4lFJYJTDGawB/mmIBq7SC/DLl3zsgLg/ybMjxkex03mXdkxp+f9W5svxHCJ9xoPfk+LekaZqCuLUA9dQmQJ4p0ZH4u22cbNZv3h27uvP5aefT04coEhZ8yZxlw/H92LSpsMvm/xZAx/oVr8457Xfr6Qhqp+X/AGkqLlzqXeCEcPlsmTf4HEaOb6e84h9+ZJic6fTPZB7sOlZlhHt23XKQs2jp9paqGD5MVoYSYAzAsKV5CRhZ2cJdFe3vvDgMVCJ9IMJMDw1fdKnT7W9DBnuEA+d4635cZWJLwD8tjLHN2DApvpZ99Hj9il2yWyFWiVn3/Auz6+TfGgsoj3DMTcApJqbep0ooVS5qXqh2WBWgvIqLmi+NPcKkG3xLWRfzU+Xsk0VP83AiUo6RZzhhvKRTw7T7n2XZD/3m473I6rniiajc3cgG6M0O5iOCRGBJEB9CvBb3Z3I1Jw5qtnELyMGOHQvhSGU1Sy9JQBmhJ5xFYmrHIaNUtw072Xn5ertvMgCjSbZcAJg8LG1AJFHkd2m4oUBzOfX6cXjpZDtwAMB3g+HZrNinY8Vbky48gMrNDXZJTQC0F7ta3alqe/q4uP2mEbhSq7iCnvnNIy9SJ+nyERPI9KIzj7qzEoWAHh5cuGDNEi8=
+        secure: rTyJouQ7BLOKO5KZDkQFFxepf1rUotheu3TOVwZVaHB4ZYaNbFWy1brh789+wtoGEMaacyHfzfmzM7/kwkBuMpRV4RJ5rt3GMYmCsa4OJrVuBGyRSUPgU/X3o9DSCIv6RxN3YLYLEKHrfOYVpqu9lsyt6Qi6YxTmJvqMzboTrpxbkqvnL1oTGkwBSvckSODV77OOLwrslb842x0+cSH+lvYqes6hJ8++FGN98wp3IjY12m9iZxWbGR34MEGBS7RT73853U/P80f4Zx386sjYQA4Hr61mXW4Wb5Y1l7YDZfK0QoLxc0PnC0hyVzCj9Yz2GuKl6B2iCdIMzegmDtQ7Mruhl9u0XKPYpMeXZa3EU1VZ2yGsjkU2bk/f0CPx6T8G4HqORgnveJ59SKMPzSiH6vbq6aq3Sl/0XeUb2MoxWJ/Tim8RbhXGZ0ze8evP4iA49rgrpLzmpA5wflR8fg9B2Xl1QcKgrDDdovSTWgWlYJNPJeMkVYkhDCxb0dnet9587D5+Tb9XHg+cDkgKJT9/GoeJq4FUNF8CLdQHXewv5r5ucIF8tJuadOH1x564mfPFePiRtTbJOduNEEyJJwoUNhxx4kdOPuoA5pSYA07xntLXeS2Qs+QH5Vc42QQyFJK1xCmcbfeWs2DT7iQzAXjd8Xl56WmVnoyEBTlmKcueR8Y=
