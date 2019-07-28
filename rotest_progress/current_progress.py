@@ -2,6 +2,8 @@
 # pylint: disable=too-many-arguments
 from __future__ import absolute_import, print_function
 
+import os
+import sys
 import threading
 
 from rotest.core import skip_if_flow
@@ -22,7 +24,12 @@ class CurrentProgressHandler(AbstractResultHandler):
     def __init__(self, *args, **kwargs):
         super(CurrentProgressHandler, self).__init__(*args, **kwargs)
         self.stream = kwargs['stream']
-        self.stream.stream = DummyFile(self.stream.stream)
+        if hasattr(self.stream, 'stream'):
+            # In case it's a container of an inner stream
+            self.stream.stream = DummyFile(self.stream.stream)
+
+        else:
+            sys.stdout = DummyFile(self.stream)
 
     def start_test_run(self):
         """Called once before any tests are executed."""
@@ -33,7 +40,7 @@ class CurrentProgressHandler(AbstractResultHandler):
         if self.watcher_thread:
             self.watcher_thread.join()
 
-        print("\n")
+        print(os.linesep)
 
     @skip_if_flow
     def start_test(self, test):

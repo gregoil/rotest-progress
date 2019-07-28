@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='rotest-progress',
-    version="0.1.1",
+    version="0.1.2",
     description="Adds a progress bar based on remote statistics where it can",
     long_description=open("README.rst").read(),
     license="MIT",

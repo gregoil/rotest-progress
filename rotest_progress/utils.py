@@ -28,6 +28,7 @@ class DummyFile(object):
     """Tqdm wrapper for a file descriptor."""
     def __init__(self, stream):
         self.stream = stream
+        self.encoding = stream.encoding
 
     def write(self, string):
         """Write using tqdm instead of the file."""
