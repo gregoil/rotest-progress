@@ -9,7 +9,10 @@ setup(
     description="Adds a progress bar based on remote statistics where it can",
     long_description=open("README.rst").read(),
     license="MIT",
-    keywords="rotest testing system django unittest",
+    author="gregoil",
+    author_email="gregoil@walla.co.il",
+    url="https://github.com/gregoil/rotest-progress",
+    keywords="rotest testing system django unittest progress",
     install_requires=[
         'rotest',
         'tqdm',
