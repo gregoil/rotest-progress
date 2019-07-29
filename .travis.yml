@@ -12,15 +12,16 @@ python:
 install: pip install tox coveralls
 script: tox -e $(echo py$TRAVIS_PYTHON_VERSION | tr -d .)
 after_success: coveralls
-deploy:
-  stage: deploy
-  python: '3.6'
-  install: skip
-  script: skip
-  provider: pypi
-  on:
-    tags: true
-  distributions: sdist bdist_wheel
-  user: gregoil
-  password:
-    secure: lOvFWUJUytzNcrnH1TDhtBAOd1NYnzx+z+CIchBJVWMkadz3iFv2RRLjHuaKSEyRQqCfy70h4AvkLFzjfvKbawWttiSY0230z18E056yEA9QuQHI5ClJLptz6hfvuCcfhItYhDjT0rleLX26RjbvT/pQQRzDR4qygmwuGiO8y60pnhh8l507Hvh8CPrr5wmeEY6eSm9g0FICthy327xtxfRgKSSjiKY/c0kHgNs0pbK1V3jPFHhQQGz2fkFZRA1mng0i6hhKnrAWc5th0hWhlcVTTCpv9f/hOPb2zMsuy0k0nlSVrOY22xxoEYiDAhoCHTVRRbusrgUlrZExNCpETm7r/6CnMT1Wo9Qluhl++aEIRk55xfgvubO/QSincsoRbaGPZ5mqe/ZnzxYk0pkfbq5yzHLbFVjvPAtCPUaB4f28kZNa7ZuhwfL3WY1Y8ml4yuk9uXVatZqZR+iBOCpGwrnA80TlipAmDo4DVn3Tuhf2+4/ho+5xmdBwsIv90htSfnU6HrFDv12uFiShjczbkC7rm1sCkurVS0LkcM23nx2GUsOiO5nHu1jNUfrGqxSegBciR+k3gBvZUOID/UtpV+e6N7PA+OLJNAlbrqhdCdnlS6Y4ocEVl2DKZY8v3tC8zZzBjO+ur9ySFLQpqjt8o9kQlW17dDoX3Sc5VLjQ/Ao=
+jobs:
+  include:
+     - stage: deploy
+       python: '3.6'
+       install: skip
+       script: skip
+       provider: pypi
+       on:
+         tags: true
+       distributions: sdist bdist_wheel
+       user: gregoil
+       password:
+         secure: lOvFWUJUytzNcrnH1TDhtBAOd1NYnzx+z+CIchBJVWMkadz3iFv2RRLjHuaKSEyRQqCfy70h4AvkLFzjfvKbawWttiSY0230z18E056yEA9QuQHI5ClJLptz6hfvuCcfhItYhDjT0rleLX26RjbvT/pQQRzDR4qygmwuGiO8y60pnhh8l507Hvh8CPrr5wmeEY6eSm9g0FICthy327xtxfRgKSSjiKY/c0kHgNs0pbK1V3jPFHhQQGz2fkFZRA1mng0i6hhKnrAWc5th0hWhlcVTTCpv9f/hOPb2zMsuy0k0nlSVrOY22xxoEYiDAhoCHTVRRbusrgUlrZExNCpETm7r/6CnMT1Wo9Qluhl++aEIRk55xfgvubO/QSincsoRbaGPZ5mqe/ZnzxYk0pkfbq5yzHLbFVjvPAtCPUaB4f28kZNa7ZuhwfL3WY1Y8ml4yuk9uXVatZqZR+iBOCpGwrnA80TlipAmDo4DVn3Tuhf2+4/ho+5xmdBwsIv90htSfnU6HrFDv12uFiShjczbkC7rm1sCkurVS0LkcM23nx2GUsOiO5nHu1jNUfrGqxSegBciR+k3gBvZUOID/UtpV+e6N7PA+OLJNAlbrqhdCdnlS6Y4ocEVl2DKZY8v3tC8zZzBjO+ur9ySFLQpqjt8o9kQlW17dDoX3Sc5VLjQ/Ao=
