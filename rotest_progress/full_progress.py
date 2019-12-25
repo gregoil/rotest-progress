@@ -21,7 +21,7 @@ class FullProgressHandler(AbstractResultHandler):
 
     def _create_bars(self, test):
         """Return progress bar."""
-        test.progress_bar = create_tree_bar(test)
+        test.progress_bar = create_tree_bar(test, self.stream)
         max_index = test.identifier
         if test.IS_COMPLEX:
             for sub_test in test:

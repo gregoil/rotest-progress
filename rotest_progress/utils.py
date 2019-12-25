@@ -63,7 +63,7 @@ TRACER_EVENT = threading.Event()
 WRAPPED_SETTRACE = False
 
 
-def create_tree_bar(test):
+def create_tree_bar(test, stream):
     """Create progress bar for a test in an hierarchical form."""
     desc = test.parents_count * '| ' + test.data.name
     unit_scale = False
@@ -85,14 +85,14 @@ def create_tree_bar(test):
 
     test.progress_bar = tqdm.trange(total, desc=desc, unit_scale=unit_scale,
                                     position=test.identifier, leave=True,
-                                    bar_format=get_format(test,
+                                    file=stream, bar_format=get_format(test,
                                                           colorama.Fore.WHITE))
     test.progress_bar.finish = False
     test.progress_bar.start = False
     return test.progress_bar
 
 
-def create_current_bar(test):
+def create_current_bar(test, stream):
     """Create progress bar for a test in a single line."""
     index = 0
     total_tests = 0
@@ -118,7 +118,7 @@ def create_current_bar(test):
         desc += " (No statistics)"
 
     test.progress_bar = tqdm.trange(total*10, desc=desc, leave=False,
-                                    position=1, unit_scale=0.1,
+                                    position=1, unit_scale=0.1, file=stream,
                                     bar_format=CURRENT_FORMAT)
     test.progress_bar.finish = False
     test.progress_bar.start = False
