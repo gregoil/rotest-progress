@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name='rotest-progress',
-    version="0.1.3",
+    version="0.2.0",
     description="Adds a progress bar based on remote statistics where it can",
     long_description=open("README.rst").read(),
     license="MIT",
@@ -30,6 +30,8 @@ setup(
             "rotest_progress:CurrentProgressHandler",
             "full_progress = "
             "rotest_progress:FullProgressHandler",
+            "tk_progress = "
+            "rotest_progress:TkinterProgressHandler",
         ],
     },
     packages=['rotest_progress'],

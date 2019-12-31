@@ -7,7 +7,8 @@ import threading
 
 from rotest.core.result.handlers.abstract_handler import AbstractResultHandler
 
-from .utils import wrap_settrace, go_over_tests, create_tree_bar
+from .utils import (wrap_settrace, go_over_tests, create_tree_bar,
+                    calculate_expected_time)
 
 
 class FullProgressHandler(AbstractResultHandler):
@@ -32,6 +33,7 @@ class FullProgressHandler(AbstractResultHandler):
     def start_test_run(self):
         """Called once before any tests are executed."""
         wrap_settrace()
+        calculate_expected_time(self.main_test)
         self.max_identifier = self._create_bars(self.main_test)
 
         self.watcher_thread = threading.Thread(target=go_over_tests,
@@ -66,4 +68,4 @@ class FullProgressHandler(AbstractResultHandler):
         if self.watcher_thread:
             self.watcher_thread.join()
 
-        print(os.linesep * self.max_identifier, file=self.stream)
+        print(os.linesep * self.max_identifier)

@@ -9,8 +9,8 @@ import colorama
 from rotest.core.models.case_data import TestOutcome
 
 
-DEFAULT_COLOR = colorama.Fore.WHITE
-OUTCOME_TO_COLOR = {TestOutcome.SUCCESS: colorama.Fore.GREEN,
+OUTCOME_TO_COLOR = {None: colorama.Fore.WHITE,
+                    TestOutcome.SUCCESS: colorama.Fore.GREEN,
                     TestOutcome.ERROR: colorama.Fore.RED,
                     TestOutcome.EXPECTED_FAILURE: colorama.Fore.CYAN,
                     TestOutcome.FAILED: colorama.Fore.LIGHTRED_EX,
@@ -63,23 +63,40 @@ TRACER_EVENT = threading.Event()
 WRAPPED_SETTRACE = False
 
 
+def calculate_expected_time(test):
+    if hasattr(test, "_expected_time"):
+        return
+
+    if test.IS_COMPLEX:
+        test._expected_time = len(list(test))
+        for sub_test in test:
+            calculate_expected_time(sub_test)
+
+    else:
+        avg_time = 1#get_statistics(test)
+        if avg_time:
+            test.logger.debug("Test avg runtime: %s", avg_time)
+            test._expected_time = int(avg_time)
+
+        else:
+            test.logger.debug("Couldn't get test statistics")
+            test._expected_time = None
+
+
 def create_tree_bar(test, stream):
     """Create progress bar for a test in an hierarchical form."""
     desc = test.parents_count * '| ' + test.data.name
     unit_scale = False
     if test.IS_COMPLEX:
-        total = len(list(test))
+        total = test._expected_time
 
     else:
-        avg_time = get_statistics(test)
+        avg_time = test._expected_time
         if avg_time:
-            test.logger.debug("Test avg runtime: %s", avg_time)
             total = int(avg_time) * 10
             unit_scale = 0.1
 
         else:
-            test.logger.debug("Couldn't get test statistics")
-            test.has_no_statistics = True
             total = 1
             desc += " (No statistics)"
 
@@ -106,14 +123,11 @@ def create_current_bar(test, stream):
                                            total_tests,
                                            test.data.name)
 
-    avg_time = get_statistics(test)
+    avg_time = test._expected_time
     if avg_time:
-        test.logger.debug("Test avg runtime: %s", avg_time)
         total = int(avg_time)
 
     else:
-        test.logger.debug("Couldn't get test statistics")
-        test.has_no_statistics = True
         total = 1
         desc += " (No statistics)"
 
@@ -127,7 +141,7 @@ def create_current_bar(test, stream):
 
 def get_format(test, color):
     """Return a bar formatter for a test in the given color."""
-    if hasattr(test, 'has_no_statistics'):
+    if not hasattr(test, '_expected_time'):
         return UNKNOWN_FORMAT % (color, 'seconds')
 
     if test.IS_COMPLEX:
@@ -136,19 +150,23 @@ def get_format(test, color):
     return FULL_FORMAT % (color, 'seconds')
 
 
-def set_color(test):
-    """Change the color of the progress bar for the given test."""
-    color = DEFAULT_COLOR
+def get_test_outcome(test):
     if hasattr(test.data, 'exception_type'):
-        color = OUTCOME_TO_COLOR.get(test.data.exception_type, color)
+        return test.data.exception_type
 
     else:
         if test.data.success is True:
-            color = OUTCOME_TO_COLOR.get(TestOutcome.SUCCESS)
+            return TestOutcome.SUCCESS
 
         elif test.data.success is False:
-            color = OUTCOME_TO_COLOR.get(TestOutcome.FAILED)
+            return TestOutcome.FAILED
 
+    return None
+
+
+def set_color(test):
+    """Change the color of the progress bar for the given test."""
+    color = OUTCOME_TO_COLOR[get_test_outcome(test)]
     test.progress_bar.bar_format = get_format(test, color)
 
 
