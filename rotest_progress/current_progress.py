@@ -40,7 +40,7 @@ class CurrentProgressHandler(AbstractResultHandler):
         if self.watcher_thread:
             self.watcher_thread.join()
 
-        print(os.linesep)
+        print(os.linesep, file=self.stream)
 
     @skip_if_flow
     def start_test(self, test):

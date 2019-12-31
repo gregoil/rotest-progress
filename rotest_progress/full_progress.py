@@ -66,4 +66,4 @@ class FullProgressHandler(AbstractResultHandler):
         if self.watcher_thread:
             self.watcher_thread.join()
 
-        print(os.linesep * self.max_identifier)
+        print(os.linesep * self.max_identifier, file=self.stream)
