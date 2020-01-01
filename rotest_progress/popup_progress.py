@@ -1,12 +1,14 @@
-from __future__ import absolute_import
+"""Module for the TkinterHandler and its logic."""
+# pylint: disable=protected-access, ungrouped-imports
+from __future__ import absolute_import, print_function
 
 import time
 import tkinter
 import threading
 from itertools import count
-from tkscrolledframe import ScrolledFrame
 from tkinter.ttk import Progressbar, Style
 
+from tkscrolledframe import ScrolledFrame
 from rotest.core.models.case_data import TestOutcome
 from rotest.core.result.handlers.abstract_handler import AbstractResultHandler
 
@@ -14,6 +16,7 @@ from .utils import (get_test_outcome, wrap_settrace, go_over_tests,
                     calculate_expected_time)
 
 
+# Map test result to HTML color code
 OUTCOME_TO_STYLE = {None: 'white',
                     TestOutcome.SUCCESS: 'green',
                     TestOutcome.ERROR: 'maroon',
@@ -24,8 +27,10 @@ OUTCOME_TO_STYLE = {None: 'white',
 
 
 class TkinterThread(threading.Thread):
+    """Thread responsible for creating and running the Tkinter window."""
     CREATE_WINDOW_TIMEOUT = 5  # Seconds
     WINDOW_HEIGHT = 500  # Pixels
+    BAR_WIDTH = 100  # Pixels
 
     def __init__(self, test):
         super(TkinterThread, self).__init__()
@@ -35,55 +40,80 @@ class TkinterThread(threading.Thread):
         self.frame = None
         self.inner_frame = None
 
+    def iterate_over_tests(self, test, window, depth=0, row=count()):
+        """Recursively populate the given frame with the tests' widgets."""
+        self.create_tree_bar(test, window, depth, next(row))
+        if test.IS_COMPLEX:
+            for sub_test in test:
+                self.iterate_over_tests(sub_test, window, depth+1, row)
+
+    def create_tree_bar(self, test, window, depth, row):
+        """Create progress bar for a test in an hierarchical form."""
+        desc = test.data.name
+        if test.IS_COMPLEX:
+            total = test._expected_time
+
+        else:
+            avg_time = test._expected_time
+            if avg_time:
+                total = int(avg_time) * 10
+
+            else:
+                total = 10
+                desc += " (No statistics)"
+
+        label = tkinter.Label(window, text=desc, height=1)
+        style = Style()
+        style.theme_use('clam')
+        style_name = str(test.identifier)+".Horizontal.TProgressbar"
+        style.configure(style_name, foreground='red', background='red')
+        progress = Progressbar(window, orient=tkinter.HORIZONTAL,
+                               maximum=total, length=self.BAR_WIDTH,
+                               mode='determinate', style=style_name)
+
+        test.progress_bar = ProgressContainer(test, progress, style_name)
+
+        label.grid(column=depth, row=row)
+        progress.grid(column=depth+1, row=row)
+
     def run(self):
+        """Create a Tkinter window, populate it with widgets, and run it."""
         window = tkinter.Tk()
         window.resizable(False, False)
         self.frame = ScrolledFrame(window, scrollbars="vertical",
                                    height=self.WINDOW_HEIGHT)
         self.frame.pack()
         self.inner_frame = self.frame.display_widget(tkinter.Frame)
-        iterate_over_tests(self.test, self.inner_frame)
+        self.iterate_over_tests(self.test, self.inner_frame)
         self.finish_preperation_event.set()
         window.mainloop()
 
     def start(self):
+        """Create and run the window, sync until it's up ready."""
         super(TkinterThread, self).start()
         self.finish_preperation_event.wait(timeout=self.CREATE_WINDOW_TIMEOUT)
+        # Adjust the window's width
         while self.inner_frame.winfo_width() <= 1:
             time.sleep(0.01)
 
         self.frame['width'] = self.inner_frame.winfo_width()
 
 
-def create_window(test):
-    watcher_thread = TkinterThread(test)
-    watcher_thread.start()
-    return watcher_thread
-
-
-def iterate_over_tests(test, window, depth=0, row=count()):
-    create_tree_bar(test, window, depth, next(row))
-    if test.IS_COMPLEX:
-        for sub_test in test:
-            iterate_over_tests(sub_test, window, depth+1, row)
-
-
 class ProgressContainer(object):
-    def __init__(self, test, label, progress_bar):
+    """Manager for a test's progress bar."""
+    def __init__(self, test, progress_bar, style_name):
         self.test = test
-        self.label = label
         self.progress_bar = progress_bar
-        self.counter = 0
         self.finish = False
         self.start = False
-        self.total = self.progress_bar['length']
-        self.style_name = str(test.identifier)+".Horizontal.TProgressbar"
+        self.total = self.progress_bar['maximum']
+        self.style_name = style_name
 
     def __iter__(self):
         value = self.progress_bar['value']
         while value < self.total:
-            Style().configure(self.style_name,
-                              background=OUTCOME_TO_STYLE[get_test_outcome(self.test)])
+            color = OUTCOME_TO_STYLE[get_test_outcome(self.test)]
+            Style().configure(self.style_name, background=color)
 
             if self.finish:
                 self.progress_bar['value'] = self.total
@@ -93,37 +123,6 @@ class ProgressContainer(object):
 
             value += 1
             self.progress_bar['value'] = value
-
-
-def create_tree_bar(test, window, depth, row):
-    """Create progress bar for a test in an hierarchical form."""
-    desc = test.data.name
-    if test.IS_COMPLEX:
-        total = test._expected_time
-
-    else:
-        avg_time = test._expected_time
-        if avg_time:
-            total = int(avg_time) * 10
-
-        else:
-            total = 10
-            desc += " (No statistics)"
-
-    label = tkinter.Label(window, text=desc, height=1)
-    style = Style()
-    style.theme_use('clam')
-    name = str(test.identifier)+".Horizontal.TProgressbar"
-    style.configure(name, foreground='red', background='red')
-    progress = Progressbar(window, orient=tkinter.HORIZONTAL, maximum=total,
-                           length=100, mode='determinate', style=name)
-
-    progress.__next__ = None
-    progress.__iter__ = None
-    test.progress_bar = ProgressContainer(test, label, progress)
-
-    label.grid(column=depth, row=row)
-    progress.grid(column=depth+1, row=row)
 
 
 class TkinterProgressHandler(AbstractResultHandler):
@@ -136,7 +135,8 @@ class TkinterProgressHandler(AbstractResultHandler):
         """Called once before any tests are executed."""
         wrap_settrace()
         calculate_expected_time(self.main_test)
-        self.tkinter_thread = create_window(self.main_test)
+        self.tkinter_thread = TkinterThread(self.main_test)
+        self.tkinter_thread.start()
 
         self.watcher_thread = threading.Thread(target=go_over_tests,
                                                kwargs={"test": self.main_test,
@@ -169,4 +169,3 @@ class TkinterProgressHandler(AbstractResultHandler):
         """Called once after all tests are executed."""
         if self.watcher_thread:
             self.watcher_thread.join()
-

@@ -1,12 +1,14 @@
 """Utilities for rotest-progress bar."""
-# pylint: disable=bare-except,global-statement
+# pylint: disable=bare-except,global-statement,protected-access
+from __future__ import absolute_import, print_function
+
 import sys
 import time
-import requests
 import threading
 
 import tqdm
 import colorama
+import requests
 from rotest.core.models.case_data import TestOutcome
 
 
@@ -39,8 +41,11 @@ class DummyFile(object):
         """Flush the stream."""
         self.stream.flush()
 
+
 NO_CONNECTION = False
 STATISTICS_CACHE = {}
+
+
 def get_statistics(test):
     """Try to get the statistics of a test.
 
@@ -75,12 +80,15 @@ TRACER_EVENT = threading.Event()
 WRAPPED_SETTRACE = False
 
 
-def calculate_expected_time(root):
+def calculate_expected_time(test):
+    """Query for the expected run time of the test and its components."""
     print("Calculating tests average time...")
-    recursive_calculate_time(root)
+    recursive_calculate_time(test)
     print("Done calculating!")
 
+
 def recursive_calculate_time(test):
+    """Recursively set the expected time field of the test and subtests."""
     if hasattr(test, "_expected_time"):
         return
 
@@ -168,15 +176,15 @@ def get_format(test, color):
 
 
 def get_test_outcome(test):
+    """Safe get the test's current result."""
     if hasattr(test.data, 'exception_type'):
         return test.data.exception_type
 
-    else:
-        if test.data.success is True:
-            return TestOutcome.SUCCESS
+    if test.data.success is True:
+        return TestOutcome.SUCCESS
 
-        elif test.data.success is False:
-            return TestOutcome.FAILED
+    if test.data.success is False:
+        return TestOutcome.FAILED
 
     return None
 
