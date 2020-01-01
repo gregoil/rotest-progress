@@ -16,6 +16,7 @@ setup(
     install_requires=[
         'rotest',
         'tqdm',
+        'tkscrolledframe',
     ],
     extras_require={
         "dev": [

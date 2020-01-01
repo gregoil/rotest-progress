@@ -1,9 +1,12 @@
 from __future__ import absolute_import
 
+import time
 import tkinter
 import threading
+from tkinter import ttk
 from itertools import count
-from tkinter.ttk import Progressbar, Style
+from tkscrolledframe import ScrolledFrame
+from tkinter.ttk import Progressbar, Style, Frame
 
 from rotest.core.models.case_data import TestOutcome
 from rotest.core.result.handlers.abstract_handler import AbstractResultHandler
@@ -20,30 +23,43 @@ OUTCOME_TO_STYLE = {None: 'white',
                     TestOutcome.SKIPPED: 'yellow',
                     TestOutcome.UNEXPECTED_SUCCESS: 'AQUA'}
 
-FINISHED_CREATING_WINDOW = threading.Event()
+
+class TkinterThread(threading.Thread):
+    PREPARE_WINDOW_TIMEOUT = 5  # Seconds
+    WINDOW_HEIGHT = 500  # Pixels
+
+    def __init__(self, test):
+        super(TkinterThread, self).__init__()
+        self.test = test
+        self.setDaemon(True)
+        self.finished_preperation_event = threading.Event()
+        self.frame = None
+        self.inner_frame = None
+
+    def run(self):
+        window = tkinter.Tk()
+        window.resizable(False, False)
+        self.frame = ScrolledFrame(window, scrollbars="vertical",
+                                   height=self.WINDOW_HEIGHT)
+        self.frame.pack()
+        self.inner_frame = self.frame.display_widget(tkinter.Frame)
+        iterate_over_tests(self.test, self.inner_frame)
+        self.finished_preperation_event.set()
+        window.mainloop()
+
+    def start(self):
+        super(TkinterThread, self).start()
+        self.finished_preperation_event.wait(timeout=self.PREPARE_WINDOW_TIMEOUT)
+        while self.inner_frame.winfo_width() <= 1:
+            time.sleep(0.01)
+
+        self.frame['width']=self.inner_frame.winfo_width();
+
+
 def create_window(test):
-    FINISHED_CREATING_WINDOW.clear()
-    watcher_thread = threading.Thread(target=_create_thread,
-                                      kwargs={"test": test})
-    watcher_thread.setDaemon(True)
+    watcher_thread = TkinterThread(test)
     watcher_thread.start()
-    FINISHED_CREATING_WINDOW.wait(timeout=5)
     return watcher_thread
-
-
-def _create_thread(test):
-    """Iterate over test and sub-tests.
-
-    Args:
-        test (AbstractTest): Test or suite to iterate over.
-        use_color (bool): whether to use colors in the progress bar.
-    """
-    window = tkinter.Tk()
-    frame = tkinter.Frame(window)
-    frame.pack()
-    iterate_over_tests(test, frame)
-    FINISHED_CREATING_WINDOW.set()
-    window.mainloop()
 
 
 def iterate_over_tests(test, window, depth=0, row=count()):
@@ -153,3 +169,4 @@ class TkinterProgressHandler(AbstractResultHandler):
         """Called once after all tests are executed."""
         if self.watcher_thread:
             self.watcher_thread.join()
+
