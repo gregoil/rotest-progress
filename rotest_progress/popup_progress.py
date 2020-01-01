@@ -3,10 +3,9 @@ from __future__ import absolute_import
 import time
 import tkinter
 import threading
-from tkinter import ttk
 from itertools import count
 from tkscrolledframe import ScrolledFrame
-from tkinter.ttk import Progressbar, Style, Frame
+from tkinter.ttk import Progressbar, Style
 
 from rotest.core.models.case_data import TestOutcome
 from rotest.core.result.handlers.abstract_handler import AbstractResultHandler
@@ -25,14 +24,14 @@ OUTCOME_TO_STYLE = {None: 'white',
 
 
 class TkinterThread(threading.Thread):
-    PREPARE_WINDOW_TIMEOUT = 5  # Seconds
+    CREATE_WINDOW_TIMEOUT = 5  # Seconds
     WINDOW_HEIGHT = 500  # Pixels
 
     def __init__(self, test):
         super(TkinterThread, self).__init__()
         self.test = test
         self.setDaemon(True)
-        self.finished_preperation_event = threading.Event()
+        self.finish_preperation_event = threading.Event()
         self.frame = None
         self.inner_frame = None
 
@@ -44,16 +43,16 @@ class TkinterThread(threading.Thread):
         self.frame.pack()
         self.inner_frame = self.frame.display_widget(tkinter.Frame)
         iterate_over_tests(self.test, self.inner_frame)
-        self.finished_preperation_event.set()
+        self.finish_preperation_event.set()
         window.mainloop()
 
     def start(self):
         super(TkinterThread, self).start()
-        self.finished_preperation_event.wait(timeout=self.PREPARE_WINDOW_TIMEOUT)
+        self.finish_preperation_event.wait(timeout=self.CREATE_WINDOW_TIMEOUT)
         while self.inner_frame.winfo_width() <= 1:
             time.sleep(0.01)
 
-        self.frame['width']=self.inner_frame.winfo_width();
+        self.frame['width'] = self.inner_frame.winfo_width()
 
 
 def create_window(test):
@@ -83,7 +82,8 @@ class ProgressContainer(object):
     def __iter__(self):
         value = self.progress_bar['value']
         while value < self.total:
-            Style().configure(self.style_name, background=OUTCOME_TO_STYLE[get_test_outcome(self.test)])
+            Style().configure(self.style_name,
+                              background=OUTCOME_TO_STYLE[get_test_outcome(self.test)])
 
             if self.finish:
                 self.progress_bar['value'] = self.total
