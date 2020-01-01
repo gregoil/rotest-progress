@@ -2,6 +2,7 @@
 # pylint: disable=bare-except,global-statement
 import sys
 import time
+import requests
 import threading
 
 import tqdm
@@ -38,7 +39,8 @@ class DummyFile(object):
         """Flush the stream."""
         self.stream.flush()
 
-
+NO_CONNECTION = False
+STATISTICS_CACHE = {}
 def get_statistics(test):
     """Try to get the statistics of a test.
 
@@ -48,12 +50,22 @@ def get_statistics(test):
     Returns:
         number: average duration of the test or None if couldn't get it.
     """
-    if not test.resource_manager:
+    global NO_CONNECTION
+    global STATISTICS_CACHE
+    if not test.resource_manager or NO_CONNECTION:
         return None
+
+    if test.data.name in STATISTICS_CACHE:
+        return STATISTICS_CACHE[test.data.name]
 
     try:
         stats = test.resource_manager.get_statistics(test.data.name)
+        STATISTICS_CACHE[test.data.name] = stats['avg']
         return stats['avg']
+
+    except requests.exceptions.ConnectionError:
+        NO_CONNECTION = True
+        return None
 
     except:  # noqa
         return None
@@ -63,27 +75,32 @@ TRACER_EVENT = threading.Event()
 WRAPPED_SETTRACE = False
 
 
-def calculate_expected_time(test):
+def calculate_expected_time(root):
+    print("Calculating tests average time...")
+    recursive_calculate_time(root)
+    print("Done calculating!")
+
+def recursive_calculate_time(test):
     if hasattr(test, "_expected_time"):
         return
 
     if test.IS_COMPLEX:
         test._expected_time = len(list(test))
         for sub_test in test:
-            calculate_expected_time(sub_test)
+            recursive_calculate_time(sub_test)
 
     else:
-        avg_time = 1#get_statistics(test)
+        avg_time = get_statistics(test)
         if avg_time:
-            test.logger.debug("Test avg runtime: %s", avg_time)
+            test.logger.debug("%s avg runtime: %s", test.data.name, avg_time)
             test._expected_time = int(avg_time)
 
         else:
-            test.logger.debug("Couldn't get test statistics")
+            test.logger.debug("No statistics for %s", test.data.name)
             test._expected_time = None
 
 
-def create_tree_bar(test, stream):
+def create_tree_bar(test):
     """Create progress bar for a test in an hierarchical form."""
     desc = test.parents_count * '| ' + test.data.name
     unit_scale = False
@@ -102,14 +119,14 @@ def create_tree_bar(test, stream):
 
     test.progress_bar = tqdm.trange(total, desc=desc, unit_scale=unit_scale,
                                     position=test.identifier, leave=True,
-                                    file=stream, bar_format=get_format(test,
+                                    bar_format=get_format(test,
                                                           colorama.Fore.WHITE))
     test.progress_bar.finish = False
     test.progress_bar.start = False
     return test.progress_bar
 
 
-def create_current_bar(test, stream):
+def create_current_bar(test):
     """Create progress bar for a test in a single line."""
     index = 0
     total_tests = 0
@@ -132,7 +149,7 @@ def create_current_bar(test, stream):
         desc += " (No statistics)"
 
     test.progress_bar = tqdm.trange(total*10, desc=desc, leave=False,
-                                    position=1, unit_scale=0.1, file=stream,
+                                    position=1, unit_scale=0.1,
                                     bar_format=CURRENT_FORMAT)
     test.progress_bar.finish = False
     test.progress_bar.start = False

@@ -20,12 +20,14 @@ OUTCOME_TO_STYLE = {None: 'white',
                     TestOutcome.SKIPPED: 'yellow',
                     TestOutcome.UNEXPECTED_SUCCESS: 'AQUA'}
 
-
+FINISHED_CREATING_WINDOW = threading.Event()
 def create_window(test):
+    FINISHED_CREATING_WINDOW.clear()
     watcher_thread = threading.Thread(target=_create_thread,
                                       kwargs={"test": test})
     watcher_thread.setDaemon(True)
     watcher_thread.start()
+    FINISHED_CREATING_WINDOW.wait(timeout=5)
     return watcher_thread
 
 
@@ -40,6 +42,7 @@ def _create_thread(test):
     frame = tkinter.Frame(window)
     frame.pack()
     iterate_over_tests(test, frame)
+    FINISHED_CREATING_WINDOW.set()
     window.mainloop()
 
 
@@ -118,8 +121,6 @@ class TkinterProgressHandler(AbstractResultHandler):
         wrap_settrace()
         calculate_expected_time(self.main_test)
         self.tkinter_thread = create_window(self.main_test)
-        while not hasattr(self.main_test, "progress_bar"):
-            pass
 
         self.watcher_thread = threading.Thread(target=go_over_tests,
                                                kwargs={"test": self.main_test,
@@ -152,6 +153,3 @@ class TkinterProgressHandler(AbstractResultHandler):
         """Called once after all tests are executed."""
         if self.watcher_thread:
             self.watcher_thread.join()
-
-        if self.tkinter_thread:
-            self.tkinter_thread.join()
