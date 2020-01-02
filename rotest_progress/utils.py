@@ -97,7 +97,7 @@ class StatisticManager(object):
         else:
             avg_time = cls.get_statistics(test)
             if avg_time:
-                test.logger.debug("%s avg runtime: %s", test.data.name, avg_time)
+                test.logger.debug("%s avg time: %s", test.data.name, avg_time)
                 test._expected_time = int(avg_time)
 
             else:
