@@ -166,7 +166,7 @@ def create_current_bar(test):
 
 def get_format(test, color):
     """Return a bar formatter for a test in the given color."""
-    if not hasattr(test, '_expected_time'):
+    if test._expected_time is None:
         return UNKNOWN_FORMAT % (color, 'seconds')
 
     if test.IS_COMPLEX:
