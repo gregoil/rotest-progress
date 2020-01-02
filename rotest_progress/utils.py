@@ -1,16 +1,19 @@
 """Utilities for rotest-progress bar."""
-# pylint: disable=bare-except,global-statement
+# pylint: disable=bare-except,global-statement,protected-access
+from __future__ import absolute_import, print_function
+
 import sys
 import time
 import threading
 
 import tqdm
 import colorama
+import requests
 from rotest.core.models.case_data import TestOutcome
 
 
-DEFAULT_COLOR = colorama.Fore.WHITE
-OUTCOME_TO_COLOR = {TestOutcome.SUCCESS: colorama.Fore.GREEN,
+OUTCOME_TO_COLOR = {None: colorama.Fore.WHITE,
+                    TestOutcome.SUCCESS: colorama.Fore.GREEN,
                     TestOutcome.ERROR: colorama.Fore.RED,
                     TestOutcome.EXPECTED_FAILURE: colorama.Fore.CYAN,
                     TestOutcome.FAILED: colorama.Fore.LIGHTRED_EX,
@@ -39,28 +42,67 @@ class DummyFile(object):
         self.stream.flush()
 
 
-def get_statistics(test):
-    """Try to get the statistics of a test.
+class StatisticManager(object):
+    """Class for managing test statistics."""
 
-    Args:
-        test (AbstractTest): test instance to find its duration.
+    NO_CONNECTION = False
+    STATISTICS_CACHE = {}
 
-    Returns:
-        number: average duration of the test or None if couldn't get it.
-    """
-    if not test.resource_manager:
-        return None
+    @classmethod
+    def get_statistics(cls, test):
+        """Try to get the statistics of a test.
 
-    try:
-        stats = test.resource_manager.get_statistics(test.data.name)
-        return stats['avg']
+        Args:
+            test (AbstractTest): test instance to find its duration.
 
-    except:  # noqa
-        return None
+        Returns:
+            number: average duration of the test or None if couldn't get it.
+        """
+        if not test.resource_manager or cls.NO_CONNECTION:
+            return None
 
+        if test.data.name in cls.STATISTICS_CACHE:
+            return cls.STATISTICS_CACHE[test.data.name]
 
-TRACER_EVENT = threading.Event()
-WRAPPED_SETTRACE = False
+        try:
+            stats = test.resource_manager.get_statistics(test.data.name)
+            cls.STATISTICS_CACHE[test.data.name] = stats['avg']
+            return stats['avg']
+
+        except requests.exceptions.ConnectionError:
+            cls.NO_CONNECTION = True
+            return None
+
+        except:  # noqa
+            return None
+
+    @classmethod
+    def calculate_expected_time(cls, test):
+        """Query for the expected run time of the test and its components."""
+        print("Calculating tests average time...")
+        cls.recursive_calculate_time(test)
+        print("Done calculating!")
+
+    @classmethod
+    def recursive_calculate_time(cls, test):
+        """Recursively set the expected time field of the test and subtests."""
+        if hasattr(test, "_expected_time"):
+            return
+
+        if test.IS_COMPLEX:
+            test._expected_time = len(list(test))
+            for sub_test in test:
+                cls.recursive_calculate_time(sub_test)
+
+        else:
+            avg_time = cls.get_statistics(test)
+            if avg_time:
+                test.logger.debug("%s avg time: %s", test.data.name, avg_time)
+                test._expected_time = int(avg_time)
+
+            else:
+                test.logger.debug("No statistics for %s", test.data.name)
+                test._expected_time = None
 
 
 def create_tree_bar(test):
@@ -68,18 +110,15 @@ def create_tree_bar(test):
     desc = test.parents_count * '| ' + test.data.name
     unit_scale = False
     if test.IS_COMPLEX:
-        total = len(list(test))
+        total = test._expected_time
 
     else:
-        avg_time = get_statistics(test)
+        avg_time = test._expected_time
         if avg_time:
-            test.logger.debug("Test avg runtime: %s", avg_time)
             total = int(avg_time) * 10
             unit_scale = 0.1
 
         else:
-            test.logger.debug("Couldn't get test statistics")
-            test.has_no_statistics = True
             total = 1
             desc += " (No statistics)"
 
@@ -106,14 +145,11 @@ def create_current_bar(test):
                                            total_tests,
                                            test.data.name)
 
-    avg_time = get_statistics(test)
+    avg_time = test._expected_time
     if avg_time:
-        test.logger.debug("Test avg runtime: %s", avg_time)
         total = int(avg_time)
 
     else:
-        test.logger.debug("Couldn't get test statistics")
-        test.has_no_statistics = True
         total = 1
         desc += " (No statistics)"
 
@@ -127,7 +163,7 @@ def create_current_bar(test):
 
 def get_format(test, color):
     """Return a bar formatter for a test in the given color."""
-    if hasattr(test, 'has_no_statistics'):
+    if test._expected_time is None:
         return UNKNOWN_FORMAT % (color, 'seconds')
 
     if test.IS_COMPLEX:
@@ -136,19 +172,23 @@ def get_format(test, color):
     return FULL_FORMAT % (color, 'seconds')
 
 
+def get_test_outcome(test):
+    """Safe get the test's current result."""
+    if hasattr(test.data, 'exception_type'):
+        return test.data.exception_type
+
+    if test.data.success is True:
+        return TestOutcome.SUCCESS
+
+    if test.data.success is False:
+        return TestOutcome.FAILED
+
+    return None
+
+
 def set_color(test):
     """Change the color of the progress bar for the given test."""
-    color = DEFAULT_COLOR
-    if hasattr(test.data, 'exception_type'):
-        color = OUTCOME_TO_COLOR.get(test.data.exception_type, color)
-
-    else:
-        if test.data.success is True:
-            color = OUTCOME_TO_COLOR.get(TestOutcome.SUCCESS)
-
-        elif test.data.success is False:
-            color = OUTCOME_TO_COLOR.get(TestOutcome.FAILED)
-
+    color = OUTCOME_TO_COLOR[get_test_outcome(test)]
     test.progress_bar.bar_format = get_format(test, color)
 
 
@@ -178,6 +218,10 @@ def go_over_tests(test, use_color):
 
             if use_color and index == test.progress_bar.total - 1:
                 set_color(test)
+
+
+TRACER_EVENT = threading.Event()
+WRAPPED_SETTRACE = False
 
 
 def wrap_settrace():
