@@ -126,7 +126,7 @@ class ProgressContainer(object):
 
 
 class TkinterProgressHandler(AbstractResultHandler):
-    """FullProgressHandler interface."""
+    """TkinterProgressHandler interface."""
     NAME = 'tk_progress'
     watcher_thread = None
     tkinter_thread = None
