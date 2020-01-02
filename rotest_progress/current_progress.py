@@ -10,7 +10,7 @@ from rotest.core import skip_if_flow
 from rotest.core.result.handlers.abstract_handler import AbstractResultHandler
 
 from .utils import (wrap_settrace, go_over_tests, create_current_bar,
-                    DummyFile, calculate_expected_time)
+                    DummyFile, StatisticManager)
 
 
 class CurrentProgressHandler(AbstractResultHandler):
@@ -35,7 +35,7 @@ class CurrentProgressHandler(AbstractResultHandler):
     def start_test_run(self):
         """Called once before any tests are executed."""
         wrap_settrace()
-        calculate_expected_time(self.main_Test)
+        StatisticManager.calculate_expected_time(self.main_Test)
 
     def stop_test_run(self):
         """Called once after all tests are executed."""

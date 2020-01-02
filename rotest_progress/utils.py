@@ -42,70 +42,67 @@ class DummyFile(object):
         self.stream.flush()
 
 
-NO_CONNECTION = False
-STATISTICS_CACHE = {}
+class StatisticManager(object):
+    """Class for managing test statistics."""
 
+    NO_CONNECTION = False
+    STATISTICS_CACHE = {}
 
-def get_statistics(test):
-    """Try to get the statistics of a test.
+    @classmethod
+    def get_statistics(cls, test):
+        """Try to get the statistics of a test.
 
-    Args:
-        test (AbstractTest): test instance to find its duration.
+        Args:
+            test (AbstractTest): test instance to find its duration.
 
-    Returns:
-        number: average duration of the test or None if couldn't get it.
-    """
-    global NO_CONNECTION
-    global STATISTICS_CACHE
-    if not test.resource_manager or NO_CONNECTION:
-        return None
+        Returns:
+            number: average duration of the test or None if couldn't get it.
+        """
+        if not test.resource_manager or cls.NO_CONNECTION:
+            return None
 
-    if test.data.name in STATISTICS_CACHE:
-        return STATISTICS_CACHE[test.data.name]
+        if test.data.name in cls.STATISTICS_CACHE:
+            return cls.STATISTICS_CACHE[test.data.name]
 
-    try:
-        stats = test.resource_manager.get_statistics(test.data.name)
-        STATISTICS_CACHE[test.data.name] = stats['avg']
-        return stats['avg']
+        try:
+            stats = test.resource_manager.get_statistics(test.data.name)
+            cls.STATISTICS_CACHE[test.data.name] = stats['avg']
+            return stats['avg']
 
-    except requests.exceptions.ConnectionError:
-        NO_CONNECTION = True
-        return None
+        except requests.exceptions.ConnectionError:
+            cls.NO_CONNECTION = True
+            return None
 
-    except:  # noqa
-        return None
+        except:  # noqa
+            return None
 
+    @classmethod
+    def calculate_expected_time(cls, test):
+        """Query for the expected run time of the test and its components."""
+        print("Calculating tests average time...")
+        cls.recursive_calculate_time(test)
+        print("Done calculating!")
 
-TRACER_EVENT = threading.Event()
-WRAPPED_SETTRACE = False
+    @classmethod
+    def recursive_calculate_time(cls, test):
+        """Recursively set the expected time field of the test and subtests."""
+        if hasattr(test, "_expected_time"):
+            return
 
-
-def calculate_expected_time(test):
-    """Query for the expected run time of the test and its components."""
-    print("Calculating tests average time...")
-    recursive_calculate_time(test)
-    print("Done calculating!")
-
-
-def recursive_calculate_time(test):
-    """Recursively set the expected time field of the test and subtests."""
-    if hasattr(test, "_expected_time"):
-        return
-
-    if test.IS_COMPLEX:
-        test._expected_time = len(list(test))
-        for sub_test in test:
-            recursive_calculate_time(sub_test)
-
-    else:
-        avg_time = get_statistics(test)
-        if avg_time:
-            test.logger.debug("%s avg runtime: %s", test.data.name, avg_time)
-            test._expected_time = int(avg_time)
+        if test.IS_COMPLEX:
+            test._expected_time = len(list(test))
+            for sub_test in test:
+                cls.recursive_calculate_time(sub_test)
 
         else:
-            test.logger.debug("No statistics for %s", test.data.name)
-            test._expected_time = None
+            avg_time = cls.get_statistics(test)
+            if avg_time:
+                test.logger.debug("%s avg runtime: %s", test.data.name, avg_time)
+                test._expected_time = int(avg_time)
+
+            else:
+                test.logger.debug("No statistics for %s", test.data.name)
+                test._expected_time = None
 
 
 def create_tree_bar(test):
@@ -221,6 +218,10 @@ def go_over_tests(test, use_color):
 
             if use_color and index == test.progress_bar.total - 1:
                 set_color(test)
+
+
+TRACER_EVENT = threading.Event()
+WRAPPED_SETTRACE = False
 
 
 def wrap_settrace():

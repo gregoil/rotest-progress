@@ -1,6 +1,6 @@
 """Module for the TkinterHandler and its logic."""
 # pylint: disable=protected-access, ungrouped-imports
-from __future__ import absolute_import, print_function
+from __future__ import absolute_import
 
 import time
 import tkinter
@@ -13,7 +13,7 @@ from rotest.core.models.case_data import TestOutcome
 from rotest.core.result.handlers.abstract_handler import AbstractResultHandler
 
 from .utils import (get_test_outcome, wrap_settrace, go_over_tests,
-                    calculate_expected_time)
+                    StatisticManager)
 
 
 # Map test result to HTML color code
@@ -45,11 +45,11 @@ class TkinterThread(threading.Thread):
         self.create_tree_bar(test, window, depth, next(row))
         if test.IS_COMPLEX:
             for sub_test in test:
-                self.iterate_over_tests(sub_test, window, depth+1, row)
+                self.iterate_over_tests(sub_test, window, depth + 1, row)
 
     def create_tree_bar(self, test, window, depth, row):
         """Create progress bar for a test in an hierarchical form."""
-        desc = test.data.name
+        name = test.data.name
         if test.IS_COMPLEX:
             total = test._expected_time
 
@@ -60,12 +60,12 @@ class TkinterThread(threading.Thread):
 
             else:
                 total = 10
-                desc += " (No statistics)"
+                name += " (No statistics)"
 
-        label = tkinter.Label(window, text=desc, height=1)
+        label = tkinter.Label(window, text=name, height=1)
         style = Style()
         style.theme_use('clam')
-        style_name = str(test.identifier)+".Horizontal.TProgressbar"
+        style_name = "{}.Horizontal.TProgressbar".format(test.identifier)
         style.configure(style_name, foreground='red', background='red')
         progress = Progressbar(window, orient=tkinter.HORIZONTAL,
                                maximum=total, length=self.BAR_WIDTH,
@@ -74,7 +74,7 @@ class TkinterThread(threading.Thread):
         test.progress_bar = ProgressContainer(test, progress, style_name)
 
         label.grid(column=depth, row=row)
-        progress.grid(column=depth+1, row=row)
+        progress.grid(column=depth + 1, row=row)
 
     def run(self):
         """Create a Tkinter window, populate it with widgets, and run it."""
@@ -109,20 +109,27 @@ class ProgressContainer(object):
         self.total = self.progress_bar['maximum']
         self.style_name = style_name
 
+    def update_color(self):
+        """Update the progress bar's color according to the test result."""
+        color = OUTCOME_TO_STYLE[get_test_outcome(self.test)]
+        Style().configure(self.style_name, background=color)
+
     def __iter__(self):
         value = self.progress_bar['value']
         while value < self.total:
-            color = OUTCOME_TO_STYLE[get_test_outcome(self.test)]
-            Style().configure(self.style_name, background=color)
 
             if self.finish:
                 self.progress_bar['value'] = self.total
+                self.update_color()
                 return
 
+            self.update_color()
             yield value
 
             value += 1
             self.progress_bar['value'] = value
+
+        self.update_color()
 
 
 class TkinterProgressHandler(AbstractResultHandler):
@@ -134,7 +141,7 @@ class TkinterProgressHandler(AbstractResultHandler):
     def start_test_run(self):
         """Called once before any tests are executed."""
         wrap_settrace()
-        calculate_expected_time(self.main_test)
+        StatisticManager.calculate_expected_time(self.main_test)
         self.tkinter_thread = TkinterThread(self.main_test)
         self.tkinter_thread.start()
 
