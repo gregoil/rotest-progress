@@ -74,6 +74,7 @@ class StatisticManager(object):
             return None
 
         except:  # noqa
+            cls.STATISTICS_CACHE[test.data.name] = None
             return None
 
     @classmethod
